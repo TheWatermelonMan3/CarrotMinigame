@@ -1,6 +1,8 @@
 extends Node2D
 
 var score : int
+var accuracy : int
+var adjustedscore : float
 var stars : int
 var dialogue = ["ATROCIOUS!\nGet out of here.",
 				"What were you even\ndoing out there?",
@@ -13,8 +15,10 @@ var spritename = ["res://sprites/buttonsAngry.webp",
 var scales = [0.5, 0.742, 0.5, 0.5]
 
 var countscore = 0
+var countacc = 0
 var countanimationtime = 0.0
 const countanimdur = 0.05
+var accanimdur = 0.02
 var countstars = 0
 var countstartime = 0.0
 const countstardur = 0.7
@@ -30,18 +34,23 @@ const flareAmplitude = 0.25
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	score = CarrotsResults.score
+	accuracy = CarrotsResults.accuracy
 	stars = 0
-	if (score > 0):
+	adjustedscore = score * accuracy / 100.0
+	if (adjustedscore > 0.0):
 		stars += 1
-	if (score > 25):
+	if (adjustedscore > 21.0):
 		stars += 1
-	if (score > 42):
+	if (adjustedscore > 39.0):
 		stars += 1
 	countstartime = countstardur
 	$buny.texture = load(spritename[2])
 	var size = scales[2]
 	$buny.scale = Vector2(-size,size)
 	hmmtime = 2.0
+	$Label.pivot_offset = $Label.size / 2.0
+	$Label2.pivot_offset = $Label2.size / 2.0
+	$Label3.pivot_offset = $Label3.size / 2.0
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
@@ -57,11 +66,24 @@ func _process(delta: float) -> void:
 			$AudioStreamPlayer.play()
 			if countscore == score:
 				flareTime = 0.5
-	elif (countstars < stars):
+	elif (countacc < accuracy):
 		if (countstars == 0 and flareTime > 0):
 			flareTime = max(0.0, flareTime - delta)
 			var size = baseLabelScale * (1.0 + flareAmplitude * sin(flareTime * PI / flareDur))
 			$Label.scale = Vector2(size,size)
+		else:
+			countanimationtime = max(0.0, countanimationtime - delta)
+			if (countanimationtime == 0.0):
+				countanimationtime = accanimdur
+				countacc += 1
+				$AudioStreamPlayer.play()
+				if countacc == accuracy:
+					flareTime = 0.5
+	elif (countstars < stars):
+		if (countstars == 0 and flareTime > 0):
+			flareTime = max(0.0, flareTime - delta)
+			var size = baseLabelScale * (1.0 + flareAmplitude * sin(flareTime * PI / flareDur))
+			$Label3.scale = Vector2(size,size)
 		else:
 			countstartime = max(0.0, countstartime - delta)
 			if (countstartime == 0.0):
@@ -87,6 +109,7 @@ func _process(delta: float) -> void:
 		$buny.scale = Vector2(-size,size)
 	
 	$Label.text = "%d" % countscore
+	$Label3.text = "%d%%" % countacc
 	if (countstars > 0):
 		$star1.texture = preload("res://sprites/staricon.png")
 	if (countstars > 1):

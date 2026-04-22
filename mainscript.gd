@@ -50,6 +50,9 @@ const fadeoutduration = 2.0
 var instructions = 0.0
 
 var countdown = 50.1
+var carrot_cooldown = 0.0
+var carrot_throws = 0
+var accuracy = 0
 
 @onready var car = $Car
 @onready var score_label = $ScoreLabel
@@ -61,10 +64,14 @@ var countdown = 50.1
 func _ready():
 	screen_size = get_viewport_rect().size
 	_spawn_backgrounds()
+	$ScoreLabel.pivot_offset = $ScoreLabel.size / 2.0
+	$TimeLabel.pivot_offset = $TimeLabel.size / 2.0
+	$AccuracyLabel.pivot_offset = $AccuracyLabel.size / 2.0
 
 func _process(delta):
 	if (countdown == 0.0):
 		CarrotsResults.score = score
+		CarrotsResults.accuracy = accuracy
 		get_tree().change_scene_to_file("res://scenes/summary_screen.tscn")
 	if (WStutorial and UDtutorial):
 		countdown = max(0.0,countdown-delta)
@@ -89,6 +96,7 @@ func _process(delta):
 			carrot_icon_anim_timer = max(0.0, carrot_icon_anim_timer - delta)
 	
 	_scroll_backgrounds(delta)
+	carrot_cooldown = max(0.0, carrot_cooldown - delta)
 	_handle_carrot_fire()
 	
 	var y1 = 70
@@ -167,10 +175,16 @@ func _process(delta):
 
 # ── Carrot Firing ───────────────────────────────────────────
 func _handle_carrot_fire():
-	if Input.is_action_just_pressed("fire_up"):
+	if Input.is_action_just_pressed("fire_up") and carrot_cooldown == 0.0:
 		_spawn_carrot(-1)
-	if Input.is_action_just_pressed("fire_down"):
+		carrot_cooldown = 0.15
+		if UDtutorial:
+			carrot_throws += 1
+	if Input.is_action_just_pressed("fire_down") and carrot_cooldown == 0.0:
 		_spawn_carrot(1)
+		carrot_cooldown = 0.15
+		if UDtutorial:
+			carrot_throws += 1
 
 func _spawn_carrot(dir: int):
 	var c = CarrotScene.instantiate()
@@ -238,6 +252,8 @@ func _get_rightmost_bg_x() -> float:
 func score_point():
 	score += 1
 	score_label.text = "%d" % score
+	accuracy = round((float(max(0, score)) / carrot_throws) * 100)
+	$AccuracyLabel.text = "Accuracy: %d%%" % accuracy
 	carrot_icon_anim_timer = 0.5
 
 func update_timer():
@@ -248,6 +264,8 @@ func update_timer():
 func lose_point(dumpcarrot : bool):
 	score -= 1
 	score_label.text = "%d" % score
+	accuracy = round((float(max(0, score)) / carrot_throws) * 100)
+	$AccuracyLabel.text = "Accuracy: %d%%" % accuracy
 	carrot_icon_anim_timer = -0.5
 	if (dumpcarrot):
 		var d = DumpCarrotScene.instantiate()
